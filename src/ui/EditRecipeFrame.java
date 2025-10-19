@@ -2,108 +2,159 @@ package ui;
 
 import dao.RecipeDAO;
 import model.Recipe;
-import util.ImageUtil;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 
 public class EditRecipeFrame extends JFrame {
-    private JTextField nameField, caloriesField, proteinField, carbsField, fatField, ingredientsField;
-    private JComboBox<String> dietTypeBox;
-    private JTextArea descArea, instrArea;
-    private JLabel imageLabel;
-    private File selectedImage;
-    private final Recipe recipe;
 
     public EditRecipeFrame(Recipe recipe) {
-        this.recipe = recipe;
-
         setTitle("✏️ Edit Recipe - " + recipe.getName());
-        setSize(600, 750);
+        setSize(800, 750);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        setLayout(new BorderLayout(10, 10));
 
-        JPanel panel = new JPanel(new GridLayout(0, 2, 10, 10));
-        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
+        mainPanel.setBackground(new Color(245, 247, 250));
 
-        Font font = new Font("Segoe UI", Font.PLAIN, 14);
+        // Scrollable form
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBackground(new Color(245, 247, 250));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // --- Fields ---
-        nameField = new JTextField(recipe.getName());
-        descArea = new JTextArea(recipe.getDescription());
-        instrArea = new JTextArea(recipe.getInstructions());
-        caloriesField = new JTextField(String.valueOf(recipe.getCalories()));
-        proteinField = new JTextField(String.valueOf(recipe.getProtein()));
-        carbsField = new JTextField(String.valueOf(recipe.getCarbs()));
-        fatField = new JTextField(String.valueOf(recipe.getFat()));
+        Font labelFont = new Font("Segoe UI", Font.BOLD, 14);
+        Font inputFont = new Font("Segoe UI", Font.PLAIN, 14);
 
-        // Load ingredients
-        List<String> ingList = RecipeDAO.getIngredientsForRecipe(recipe.getId());
-        ingredientsField = new JTextField(String.join(", ", ingList));
+        // Components
+        int row = 0;
 
-        dietTypeBox = new JComboBox<>(new String[]{"Vegan", "Vegetarian", "Non-Veg"});
-        dietTypeBox.setSelectedItem(recipe.getDietType());
+        // ✅ Name field
+        JTextField nameField = new JTextField(recipe.getName(), 30);
+        addField(formPanel, gbc, labelFont, inputFont, "Name:", nameField, row++);
 
-        // --- Image section ---
-        imageLabel = new JLabel("No image selected", SwingConstants.CENTER);
-        if (recipe.getImage() != null)
-            imageLabel.setIcon(new ImageIcon(ImageUtil.resize(recipe.getImage(), 100, 100)));
+        // ✅ Diet Type dropdown
+        JComboBox<String> dietBox = new JComboBox<>(new String[]{"Veg", "Non-Veg", "Vegan"});
+        dietBox.setSelectedItem(recipe.getDietType());
+        addField(formPanel, gbc, labelFont, inputFont, "Diet Type:", dietBox, row++);
 
-        JButton browseBtn = new JButton("📷 Change Image");
-        browseBtn.addActionListener(e -> {
-            JFileChooser fc = new JFileChooser();
-            if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-                selectedImage = fc.getSelectedFile();
-                imageLabel.setText(selectedImage.getName());
-                imageLabel.setIcon(new ImageIcon(new ImageIcon(selectedImage.getAbsolutePath()).getImage()
-                        .getScaledInstance(100, 100, Image.SCALE_SMOOTH)));
+        // ✅ Description
+        JTextArea descArea = createTextArea(recipe.getDescription(), inputFont);
+        addField(formPanel, gbc, labelFont, inputFont, "Description:", new JScrollPane(descArea), row++);
+
+        // ✅ Ingredients
+        List<String> ingredients = RecipeDAO.getIngredientsForRecipe(recipe.getId());
+        JTextArea ingArea = createTextArea(String.join(", ", ingredients), inputFont);
+        addField(formPanel, gbc, labelFont, inputFont, "Ingredients (comma-separated):", new JScrollPane(ingArea), row++);
+
+        // ✅ Instructions
+        JTextArea instrArea = createTextArea(recipe.getInstructions(), inputFont);
+        addField(formPanel, gbc, labelFont, inputFont, "Instructions:", new JScrollPane(instrArea), row++);
+
+        // ✅ Nutrition info
+        JTextField calField = new JTextField(String.valueOf(recipe.getCalories()));
+        addField(formPanel, gbc, labelFont, inputFont, "Calories (kcal):", calField, row++);
+
+        JTextField protField = new JTextField(String.valueOf(recipe.getProtein()));
+        addField(formPanel, gbc, labelFont, inputFont, "Protein (g):", protField, row++);
+
+        JTextField carbField = new JTextField(String.valueOf(recipe.getCarbs()));
+        addField(formPanel, gbc, labelFont, inputFont, "Carbs (g):", carbField, row++);
+
+        JTextField fatField = new JTextField(String.valueOf(recipe.getFat()));
+        addField(formPanel, gbc, labelFont, inputFont, "Fat (g):", fatField, row++);
+
+        // ✅ Scroll pane for the entire form
+        JScrollPane scrollPane = new JScrollPane(formPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // ✅ Save button
+        JButton saveBtn = new JButton("💾 Save Changes");
+        saveBtn.setFont(new Font("Segoe UI Emoji", Font.BOLD, 15));
+        saveBtn.setBackground(new Color(0, 123, 255));
+        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setFocusPainted(false);
+        saveBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        saveBtn.setPreferredSize(new Dimension(180, 40));
+
+        JPanel btnPanel = new JPanel();
+        btnPanel.setBackground(new Color(245, 247, 250));
+        btnPanel.add(saveBtn);
+        mainPanel.add(btnPanel, BorderLayout.SOUTH);
+
+        // ✅ Save logic
+        saveBtn.addActionListener(e -> {
+            try {
+                recipe.setName(nameField.getText().trim());
+                recipe.setDietType((String) dietBox.getSelectedItem());
+                recipe.setDescription(descArea.getText().trim());
+                recipe.setInstructions(instrArea.getText().trim());
+                recipe.setCalories(Integer.parseInt(calField.getText().trim()));
+                recipe.setProtein(Integer.parseInt(protField.getText().trim()));
+                recipe.setCarbs(Integer.parseInt(carbField.getText().trim()));
+                recipe.setFat(Integer.parseInt(fatField.getText().trim()));
+
+                // Update ingredients list
+                List<String> updatedIngredients = Arrays.asList(ingArea.getText().split("\\s*,\\s*"));
+
+                RecipeDAO.updateRecipe(recipe, updatedIngredients);
+
+                JOptionPane.showMessageDialog(this,
+                        "✅ Recipe updated successfully!",
+                        "Success", JOptionPane.INFORMATION_MESSAGE);
+
+                dispose();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this,
+                        "❌ Error updating recipe: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        // --- Add components to grid ---
-        panel.add(new JLabel("Name:")); panel.add(nameField);
-        panel.add(new JLabel("Diet Type:")); panel.add(dietTypeBox);
-        panel.add(new JLabel("Description:")); panel.add(new JScrollPane(descArea));
-        panel.add(new JLabel("Ingredients (comma-separated):")); panel.add(ingredientsField);
-        panel.add(new JLabel("Instructions:")); panel.add(new JScrollPane(instrArea));
-        panel.add(new JLabel("Calories:")); panel.add(caloriesField);
-        panel.add(new JLabel("Protein (g):")); panel.add(proteinField);
-        panel.add(new JLabel("Carbs (g):")); panel.add(carbsField);
-        panel.add(new JLabel("Fat (g):")); panel.add(fatField);
-        panel.add(imageLabel); panel.add(browseBtn);
-
-        JButton saveBtn = new JButton("💾 Save Changes");
-        saveBtn.setBackground(new Color(144, 238, 144));
-        saveBtn.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
-        saveBtn.addActionListener(e -> saveChanges());
-
-        add(new JScrollPane(panel), BorderLayout.CENTER);
-        add(saveBtn, BorderLayout.SOUTH);
-
+        setContentPane(mainPanel);
         setVisible(true);
     }
 
-    private void saveChanges() {
-        try {
-            String name = nameField.getText().trim();
-            String diet = (String) dietTypeBox.getSelectedItem();
-            String desc = descArea.getText().trim();
-            String instr = instrArea.getText().trim();
-            int cal = Integer.parseInt(caloriesField.getText().trim());
-            int pro = Integer.parseInt(proteinField.getText().trim());
-            int carb = Integer.parseInt(carbsField.getText().trim());
-            int fat = Integer.parseInt(fatField.getText().trim());
-            String ingredients = ingredientsField.getText().trim();
+    // 🔹 Helper to add label + field pair
+    private void addField(JPanel panel, GridBagConstraints gbc, Font labelFont, Font inputFont,
+                          String labelText, Component input, int row) {
 
-            RecipeDAO.updateRecipe(recipe.getId(), name, diet, desc, instr, cal, pro, carb, fat, selectedImage, ingredients);
-            JOptionPane.showMessageDialog(this, "✅ Recipe updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-            dispose();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "❌ Error: " + ex.getMessage(), "Failed", JOptionPane.ERROR_MESSAGE);
-            ex.printStackTrace();
-        }
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.weightx = 0.25;
+        gbc.anchor = GridBagConstraints.WEST;
+
+        JLabel label = new JLabel(labelText);
+        label.setFont(labelFont);
+        panel.add(label, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.75;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        if (input instanceof JTextField)
+            ((JTextField) input).setFont(inputFont);
+        else if (input instanceof JScrollPane)
+            ((JTextArea) ((JScrollPane) input).getViewport().getView()).setFont(inputFont);
+        else if (input instanceof JComboBox)
+            ((JComboBox<?>) input).setFont(inputFont);
+
+        panel.add(input, gbc);
+    }
+
+    // 🔹 Helper for text areas
+    private JTextArea createTextArea(String text, Font font) {
+        JTextArea area = new JTextArea(text, 4, 30);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setFont(font);
+        return area;
     }
 }
