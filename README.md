@@ -32,10 +32,13 @@ Driver: JDBC (MySQL Connector/J)
 
 ## 🖼️ Screenshots ##
 
+### Home GUI ###
 <img width="1483" height="925" alt="image" src="https://github.com/user-attachments/assets/da01f613-cdf7-45a3-9836-5ea7d79cd56c" />
 
+### Favorites GUI ###
 <img width="1167" height="892" alt="image" src="https://github.com/user-attachments/assets/ac31f936-a9c6-4b55-998e-b8a1a41851fc" />
 
+### Add New Recpie GUI ###
 <img width="986" height="1114" alt="image" src="https://github.com/user-attachments/assets/53df4de3-242f-4462-9122-3f5d8ff74b8d" />
 
 
