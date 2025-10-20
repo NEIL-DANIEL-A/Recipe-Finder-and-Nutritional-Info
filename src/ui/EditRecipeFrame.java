@@ -78,7 +78,7 @@ public class EditRecipeFrame extends JFrame {
         JButton saveBtn = new JButton("💾 Save Changes");
         saveBtn.setFont(new Font("Segoe UI Emoji", Font.BOLD, 15));
         saveBtn.setBackground(new Color(0, 123, 255));
-        saveBtn.setForeground(Color.WHITE);
+        saveBtn.setForeground(Color.BLACK);
         saveBtn.setFocusPainted(false);
         saveBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         saveBtn.setPreferredSize(new Dimension(180, 40));
