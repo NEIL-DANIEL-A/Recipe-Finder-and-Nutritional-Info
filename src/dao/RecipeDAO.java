@@ -13,34 +13,42 @@ public class RecipeDAO {
 
     public static List<Recipe> searchRecipesByIngredientOrName(String query, String dietType) {
         List<Recipe> list = new ArrayList<>();
+        query = query == null ? "" : query.trim().toLowerCase();
+        dietType = dietType == null ? "All" : dietType.trim();
 
         try (Connection conn = DBConnection.getConnection()) {
+
             StringBuilder sql = new StringBuilder("""
-            SELECT DISTINCT r.*
+            SELECT DISTINCT r.id, r.name, r.diet_type, r.description,
+                            r.instructions, r.calories, r.protein,
+                            r.carbs, r.fat, r.image
             FROM recipes r
             LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
             LEFT JOIN ingredients i ON ri.ingredient_id = i.id
             WHERE (LOWER(r.name) LIKE ? OR LOWER(i.name) LIKE ?)
         """);
 
-            // Add diet filter dynamically
+            // 🔹 Normalize diet filters
             if (!dietType.equalsIgnoreCase("All")) {
                 if (dietType.equalsIgnoreCase("Vegetarian")) {
                     sql.append(" AND (LOWER(r.diet_type) = 'vegetarian' OR LOWER(r.diet_type) = 'vegan')");
-                } else if (dietType.equalsIgnoreCase("Non-Vegetarian")) {
-                    sql.append(" AND LOWER(r.diet_type) = 'non-vegetarian'");
                 } else if (dietType.equalsIgnoreCase("Vegan")) {
                     sql.append(" AND LOWER(r.diet_type) = 'vegan'");
+                } else if (dietType.equalsIgnoreCase("Non-Veg") || dietType.equalsIgnoreCase("Non-Vegetarian")) {
+                    sql.append(" AND (LOWER(r.diet_type) = 'non-veg' OR LOWER(r.diet_type) = 'non-vegetarian')");
                 }
             }
 
+            sql.append(" ORDER BY r.name ASC");
+
             PreparedStatement ps = conn.prepareStatement(sql.toString());
-            ps.setString(1, "%" + query.toLowerCase().trim() + "%");
-            ps.setString(2, "%" + query.toLowerCase().trim() + "%");
+            ps.setString(1, "%" + query + "%");
+            ps.setString(2, "%" + query + "%");
 
             ResultSet rs = ps.executeQuery();
+
             while (rs.next()) {
-                Image img = ImageUtil.readImageFromBlob(rs.getBinaryStream("image"));
+                Image img = util.ImageUtil.readImageFromBlob(rs.getBinaryStream("image"));
                 list.add(new Recipe(
                         rs.getInt("id"),
                         rs.getString("name"),
@@ -61,6 +69,7 @@ public class RecipeDAO {
 
         return list;
     }
+
 
 
 
