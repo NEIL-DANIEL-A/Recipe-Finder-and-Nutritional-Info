@@ -1,12 +1,10 @@
 package model;
 import java.awt.Image;
-
 public class Recipe {
     private int id;
     private String name, dietType, description, instructions;
     private int calories, protein, carbs, fat;
     private Image image;
-
     public Recipe(int id, String name, String dietType, String desc, String instr,
                   int cal, int pro, int carb, int fat, Image image) {
         this.id = id;
@@ -20,7 +18,6 @@ public class Recipe {
         this.fat = fat;
         this.image = image;
     }
-
     public int getId() { return id; }
     public String getName() { return name; }
     public String getDietType() { return dietType; }
@@ -31,37 +28,12 @@ public class Recipe {
     public int getCarbs() { return carbs; }
     public int getFat() { return fat; }
     public Image getImage() { return image; }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setDietType(String dietType) {
-        this.dietType = dietType;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public void setInstructions(String instructions) {
-        this.instructions = instructions;
-    }
-
-    public void setCalories(int calories) {
-        this.calories = calories;
-    }
-
-    public void setProtein(int protein) {
-        this.protein = protein;
-    }
-
-    public void setCarbs(int carbs) {
-        this.carbs = carbs;
-    }
-
-    public void setFat(int fat) {
-        this.fat = fat;
-    }
-
+    public void setName(String name) {this.name = name;}
+    public void setDietType(String dietType) {this.dietType = dietType;}
+    public void setDescription(String description) {this.description = description;}
+    public void setInstructions(String instructions) {this.instructions = instructions;}
+    public void setCalories(int calories) {this.calories = calories;}
+    public void setProtein(int protein) {this.protein = protein;}
+    public void setCarbs(int carbs) {this.carbs = carbs;}
+    public void setFat(int fat) {this.fat = fat;}
 }

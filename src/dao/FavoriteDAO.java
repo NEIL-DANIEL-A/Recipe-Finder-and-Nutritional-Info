@@ -6,7 +6,6 @@ import java.awt.Image;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
-
 public class FavoriteDAO {
     public static void addFavorite(int recipeId) {
         try (Connection conn = DBConnection.getConnection();
@@ -18,7 +17,6 @@ public class FavoriteDAO {
             e.printStackTrace();
         }
     }
-
     public static void removeFavorite(int recipeId) {
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(
@@ -29,7 +27,6 @@ public class FavoriteDAO {
             e.printStackTrace();
         }
     }
-
     public static List<Recipe> getFavorites() {
         List<Recipe> list = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();

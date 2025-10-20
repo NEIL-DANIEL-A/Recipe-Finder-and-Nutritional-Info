@@ -2,20 +2,16 @@ package dao;
 import database.DBConnection;
 import model.Recipe;
 import util.ImageUtil;
-
 import javax.swing.*;
 import java.awt.Image;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
-
 public class RecipeDAO {
-
     public static List<Recipe> searchRecipesByIngredientOrName(String query, String dietType) {
         List<Recipe> list = new ArrayList<>();
         query = query == null ? "" : query.trim().toLowerCase();
         dietType = dietType == null ? "All" : dietType.trim();
-
         try (Connection conn = DBConnection.getConnection()) {
             String[] terms = query.split(",");
             List<String> keywords = new ArrayList<>();
@@ -23,7 +19,6 @@ public class RecipeDAO {
                 t = t.trim().toLowerCase();
                 if (!t.isEmpty()) keywords.add(t);
             }
-
             StringBuilder sql = new StringBuilder("""
             SELECT DISTINCT r.id, r.name, r.diet_type, r.description,
                             r.instructions, r.calories, r.protein,
@@ -33,8 +28,6 @@ public class RecipeDAO {
             LEFT JOIN ingredients i ON ri.ingredient_id = i.id
             WHERE 1=1
         """);
-
-            // ✅ If keywords exist — match ANY name or ingredient (more user-friendly)
             if (!keywords.isEmpty()) {
                 sql.append(" AND (");
                 for (int i = 0; i < keywords.size(); i++) {
@@ -43,8 +36,6 @@ public class RecipeDAO {
                 }
                 sql.append(")");
             }
-
-            // ✅ Diet filters
             if (!dietType.equalsIgnoreCase("All")) {
                 if (dietType.equalsIgnoreCase("Vegetarian")) {
                     sql.append(" AND (LOWER(r.diet_type) = 'vegetarian' OR LOWER(r.diet_type) = 'vegan')");
@@ -54,20 +45,14 @@ public class RecipeDAO {
                     sql.append(" AND (LOWER(r.diet_type) = 'non-veg' OR LOWER(r.diet_type) = 'non-vegetarian')");
                 }
             }
-
             sql.append(" ORDER BY r.name ASC");
-
             PreparedStatement ps = conn.prepareStatement(sql.toString());
-
-            // 🧩 Bind search keywords
             int idx = 1;
             for (String kw : keywords) {
-                ps.setString(idx++, "%" + kw + "%"); // recipe name LIKE
-                ps.setString(idx++, "%" + kw + "%"); // ingredient LIKE
+                ps.setString(idx++, "%" + kw + "%");
+                ps.setString(idx++, "%" + kw + "%");
             }
-
             ResultSet rs = ps.executeQuery();
-
             while (rs.next()) {
                 Image img = ImageUtil.readImageFromBlob(rs.getBinaryStream("image"));
                 list.add(new Recipe(
@@ -83,32 +68,20 @@ public class RecipeDAO {
                         img
                 ));
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return list;
     }
-
-
-
-
-
-
-
     public static void addRecipe(String name, String diet, String desc, String instr,
                                  int cal, int pro, int carb, int fat, File imageFile,
                                  String ingredients) {
         try (Connection conn = DBConnection.getConnection()) {
-
-            // Step 1️⃣ Insert recipe (auto-commit for performance)
             String recipeSQL = """
             INSERT INTO recipes
             (name, diet_type, description, instructions, calories, protein, carbs, fat, image)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
-
             int recipeId = 0;
             try (PreparedStatement ps = conn.prepareStatement(recipeSQL, Statement.RETURN_GENERATED_KEYS)) {
                 ps.setString(1, name);
@@ -127,22 +100,16 @@ public class RecipeDAO {
                 ResultSet rs = ps.getGeneratedKeys();
                 if (rs.next()) recipeId = rs.getInt(1);
             }
-
-            // Step 2️⃣ Insert ingredients (individually, autocommit true)
             if (ingredients != null && !ingredients.trim().isEmpty()) {
                 String[] ingArr = ingredients.split(",");
                 for (String ing : ingArr) {
                     String ingName = ing.trim().toLowerCase();
                     if (ingName.isEmpty()) continue;
-
-                    // Add ingredient if new
                     try (PreparedStatement pi = conn.prepareStatement(
                             "INSERT IGNORE INTO ingredients (name) VALUES (?)")) {
                         pi.setString(1, ingName);
                         pi.executeUpdate();
                     }
-
-                    // Get its ID
                     int ingId = 0;
                     try (PreparedStatement getId = conn.prepareStatement(
                             "SELECT id FROM ingredients WHERE name=?")) {
@@ -150,8 +117,6 @@ public class RecipeDAO {
                         ResultSet rs = getId.executeQuery();
                         if (rs.next()) ingId = rs.getInt(1);
                     }
-
-                    // Link to recipe
                     if (ingId > 0) {
                         try (PreparedStatement link = conn.prepareStatement(
                                 "INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity) VALUES (?, ?, '1 unit')")) {
@@ -162,18 +127,14 @@ public class RecipeDAO {
                     }
                 }
             }
-
             System.out.println("✅ Recipe added successfully (ID: " + recipeId + ")");
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error adding recipe: " + e.getMessage());
         }
     }
-
-
     public static void updateRecipe(Recipe recipe, List<String> ingredients) {
         try (Connection conn = DBConnection.getConnection()) {
-            // Update base recipe
             String sql = """
             UPDATE recipes
             SET name=?, diet_type=?, description=?, instructions=?, calories=?, protein=?, carbs=?, fat=?
@@ -191,30 +152,24 @@ public class RecipeDAO {
                 ps.setInt(9, recipe.getId());
                 ps.executeUpdate();
             }
-
-            // Refresh ingredients
             try (PreparedStatement del = conn.prepareStatement(
                     "DELETE FROM recipe_ingredients WHERE recipe_id=?")) {
                 del.setInt(1, recipe.getId());
                 del.executeUpdate();
             }
-
             for (String ing : ingredients) {
                 String ingName = ing.trim().toLowerCase();
                 if (ingName.isEmpty()) continue;
-
                 try (PreparedStatement pi = conn.prepareStatement("INSERT IGNORE INTO ingredients (name) VALUES (?)")) {
                     pi.setString(1, ingName);
                     pi.executeUpdate();
                 }
-
                 int ingId = 0;
                 try (PreparedStatement ps2 = conn.prepareStatement("SELECT id FROM ingredients WHERE name=?")) {
                     ps2.setString(1, ingName);
                     ResultSet rs = ps2.executeQuery();
                     if (rs.next()) ingId = rs.getInt(1);
                 }
-
                 if (ingId > 0) {
                     try (PreparedStatement link = conn.prepareStatement(
                             "INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity) VALUES (?, ?, '1 unit')")) {
@@ -228,8 +183,6 @@ public class RecipeDAO {
             e.printStackTrace();
         }
     }
-
-
     public static List<String> getIngredientsForRecipe(int recipeId) {
         List<String> ingredients = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
@@ -246,6 +199,4 @@ public class RecipeDAO {
         }
         return ingredients;
     }
-
-
 }

@@ -1,6 +1,4 @@
-jdbc:mysql://localhost:3306/database_name
-username
-password
+jdbc:mysql://localhost:3306/recipe_db
+root
+Neil_daniel06
 
-
-// replace the database_name, username, and password with ur mysql confidentials
