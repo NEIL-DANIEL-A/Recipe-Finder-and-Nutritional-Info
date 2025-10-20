@@ -2,6 +2,8 @@ package dao;
 import database.DBConnection;
 import model.Recipe;
 import util.ImageUtil;
+
+import javax.swing.*;
 import java.awt.Image;
 import java.io.*;
 import java.sql.*;
@@ -18,26 +20,23 @@ public class RecipeDAO {
             FROM recipes r
             LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
             LEFT JOIN ingredients i ON ri.ingredient_id = i.id
-            WHERE (
-                LOWER(r.name) LIKE ? OR LOWER(i.name) LIKE ?
-            )
+            WHERE (LOWER(r.name) LIKE ? OR LOWER(i.name) LIKE ?)
         """);
 
+            // Add diet filter dynamically
             if (!dietType.equalsIgnoreCase("All")) {
                 if (dietType.equalsIgnoreCase("Vegetarian")) {
                     sql.append(" AND (LOWER(r.diet_type) = 'vegetarian' OR LOWER(r.diet_type) = 'vegan')");
-                } else {
-                    sql.append(" AND LOWER(r.diet_type) = ?");
+                } else if (dietType.equalsIgnoreCase("Non-Vegetarian")) {
+                    sql.append(" AND LOWER(r.diet_type) = 'non-vegetarian'");
+                } else if (dietType.equalsIgnoreCase("Vegan")) {
+                    sql.append(" AND LOWER(r.diet_type) = 'vegan'");
                 }
             }
 
             PreparedStatement ps = conn.prepareStatement(sql.toString());
             ps.setString(1, "%" + query.toLowerCase().trim() + "%");
             ps.setString(2, "%" + query.toLowerCase().trim() + "%");
-
-            if (!dietType.equalsIgnoreCase("All") && !dietType.equalsIgnoreCase("Vegetarian")) {
-                ps.setString(3, dietType.toLowerCase());
-            }
 
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
@@ -66,125 +65,139 @@ public class RecipeDAO {
 
 
 
+
     public static void addRecipe(String name, String diet, String desc, String instr,
                                  int cal, int pro, int carb, int fat, File imageFile,
                                  String ingredients) {
         try (Connection conn = DBConnection.getConnection()) {
-            conn.setAutoCommit(false);
 
-            PreparedStatement ps = conn.prepareStatement(
-                    "INSERT INTO recipes (name, diet_type, description, instructions, calories, protein, carbs, fat, image) " +
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    Statement.RETURN_GENERATED_KEYS
-            );
-            ps.setString(1, name);
-            ps.setString(2, diet);
-            ps.setString(3, desc);
-            ps.setString(4, instr);
-            ps.setInt(5, cal);
-            ps.setInt(6, pro);
-            ps.setInt(7, carb);
-            ps.setInt(8, fat);
+            // Step 1️⃣ Insert recipe (auto-commit for performance)
+            String recipeSQL = """
+            INSERT INTO recipes
+            (name, diet_type, description, instructions, calories, protein, carbs, fat, image)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """;
 
-            if (imageFile != null)
-                ps.setBinaryStream(9, new java.io.FileInputStream(imageFile));
-            else
-                ps.setNull(9, java.sql.Types.BLOB);
-
-            ps.executeUpdate();
-            ResultSet keys = ps.getGeneratedKeys();
             int recipeId = 0;
-            if (keys.next()) recipeId = keys.getInt(1);
-
-            String[] ingArr = ingredients.split(",");
-            for (String ing : ingArr) {
-                String ingName = ing.trim().toLowerCase();
-                if (ingName.isEmpty()) continue;
-
-                PreparedStatement pi = conn.prepareStatement(
-                        "INSERT IGNORE INTO ingredients (name) VALUES (?)");
-                pi.setString(1, ingName);
-                pi.executeUpdate();
-
-                PreparedStatement getId = conn.prepareStatement(
-                        "SELECT id FROM ingredients WHERE name=?");
-                getId.setString(1, ingName);
-                ResultSet rs = getId.executeQuery();
-                int ingId = rs.next() ? rs.getInt(1) : 0;
-
-                PreparedStatement link = conn.prepareStatement(
-                        "INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity) VALUES (?, ?, ?)");
-                link.setInt(1, recipeId);
-                link.setInt(2, ingId);
-                link.setString(3, "1 unit");
-                link.executeUpdate();
+            try (PreparedStatement ps = conn.prepareStatement(recipeSQL, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, name);
+                ps.setString(2, diet);
+                ps.setString(3, desc);
+                ps.setString(4, instr);
+                ps.setInt(5, cal);
+                ps.setInt(6, pro);
+                ps.setInt(7, carb);
+                ps.setInt(8, fat);
+                if (imageFile != null)
+                    ps.setBinaryStream(9, new FileInputStream(imageFile));
+                else
+                    ps.setNull(9, Types.BLOB);
+                ps.executeUpdate();
+                ResultSet rs = ps.getGeneratedKeys();
+                if (rs.next()) recipeId = rs.getInt(1);
             }
 
-            conn.commit();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+            // Step 2️⃣ Insert ingredients (individually, autocommit true)
+            if (ingredients != null && !ingredients.trim().isEmpty()) {
+                String[] ingArr = ingredients.split(",");
+                for (String ing : ingArr) {
+                    String ingName = ing.trim().toLowerCase();
+                    if (ingName.isEmpty()) continue;
 
-    public static void updateRecipe(int id, String name, String diet, String desc, String instr,
-                                    int cal, int pro, int carb, int fat, File imageFile, String ingredients) {
-        try (Connection conn = DBConnection.getConnection()) {
-            conn.setAutoCommit(false);
+                    // Add ingredient if new
+                    try (PreparedStatement pi = conn.prepareStatement(
+                            "INSERT IGNORE INTO ingredients (name) VALUES (?)")) {
+                        pi.setString(1, ingName);
+                        pi.executeUpdate();
+                    }
 
-            // Update main recipe
-            PreparedStatement ps = conn.prepareStatement("""
-            UPDATE recipes
-            SET name=?, diet_type=?, description=?, instructions=?, calories=?, protein=?, carbs=?, fat=?, image=IFNULL(?, image)
-            WHERE id=?
-        """);
-            ps.setString(1, name);
-            ps.setString(2, diet);
-            ps.setString(3, desc);
-            ps.setString(4, instr);
-            ps.setInt(5, cal);
-            ps.setInt(6, pro);
-            ps.setInt(7, carb);
-            ps.setInt(8, fat);
+                    // Get its ID
+                    int ingId = 0;
+                    try (PreparedStatement getId = conn.prepareStatement(
+                            "SELECT id FROM ingredients WHERE name=?")) {
+                        getId.setString(1, ingName);
+                        ResultSet rs = getId.executeQuery();
+                        if (rs.next()) ingId = rs.getInt(1);
+                    }
 
-            if (imageFile != null)
-                ps.setBinaryStream(9, new java.io.FileInputStream(imageFile));
-            else
-                ps.setNull(9, java.sql.Types.BLOB);
-
-            ps.setInt(10, id);
-            ps.executeUpdate();
-
-            // Delete and reinsert ingredients
-            PreparedStatement del = conn.prepareStatement("DELETE FROM recipe_ingredients WHERE recipe_id=?");
-            del.setInt(1, id);
-            del.executeUpdate();
-
-            for (String ing : ingredients.split(",")) {
-                String ingName = ing.trim().toLowerCase();
-                if (ingName.isEmpty()) continue;
-
-                PreparedStatement pi = conn.prepareStatement("INSERT IGNORE INTO ingredients (name) VALUES (?)");
-                pi.setString(1, ingName);
-                pi.executeUpdate();
-
-                PreparedStatement getId = conn.prepareStatement("SELECT id FROM ingredients WHERE name=?");
-                getId.setString(1, ingName);
-                ResultSet rs = getId.executeQuery();
-                if (rs.next()) {
-                    int ingId = rs.getInt(1);
-                    PreparedStatement link = conn.prepareStatement("INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity) VALUES (?, ?, ?)");
-                    link.setInt(1, id);
-                    link.setInt(2, ingId);
-                    link.setString(3, "1 unit");
-                    link.executeUpdate();
+                    // Link to recipe
+                    if (ingId > 0) {
+                        try (PreparedStatement link = conn.prepareStatement(
+                                "INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity) VALUES (?, ?, '1 unit')")) {
+                            link.setInt(1, recipeId);
+                            link.setInt(2, ingId);
+                            link.executeUpdate();
+                        }
+                    }
                 }
             }
 
-            conn.commit();
+            System.out.println("✅ Recipe added successfully (ID: " + recipeId + ")");
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error adding recipe: " + e.getMessage());
+        }
+    }
+
+
+    public static void updateRecipe(Recipe recipe, List<String> ingredients) {
+        try (Connection conn = DBConnection.getConnection()) {
+            // Update base recipe
+            String sql = """
+            UPDATE recipes
+            SET name=?, diet_type=?, description=?, instructions=?, calories=?, protein=?, carbs=?, fat=?
+            WHERE id=?
+        """;
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, recipe.getName());
+                ps.setString(2, recipe.getDietType());
+                ps.setString(3, recipe.getDescription());
+                ps.setString(4, recipe.getInstructions());
+                ps.setInt(5, recipe.getCalories());
+                ps.setInt(6, recipe.getProtein());
+                ps.setInt(7, recipe.getCarbs());
+                ps.setInt(8, recipe.getFat());
+                ps.setInt(9, recipe.getId());
+                ps.executeUpdate();
+            }
+
+            // Refresh ingredients
+            try (PreparedStatement del = conn.prepareStatement(
+                    "DELETE FROM recipe_ingredients WHERE recipe_id=?")) {
+                del.setInt(1, recipe.getId());
+                del.executeUpdate();
+            }
+
+            for (String ing : ingredients) {
+                String ingName = ing.trim().toLowerCase();
+                if (ingName.isEmpty()) continue;
+
+                try (PreparedStatement pi = conn.prepareStatement("INSERT IGNORE INTO ingredients (name) VALUES (?)")) {
+                    pi.setString(1, ingName);
+                    pi.executeUpdate();
+                }
+
+                int ingId = 0;
+                try (PreparedStatement ps2 = conn.prepareStatement("SELECT id FROM ingredients WHERE name=?")) {
+                    ps2.setString(1, ingName);
+                    ResultSet rs = ps2.executeQuery();
+                    if (rs.next()) ingId = rs.getInt(1);
+                }
+
+                if (ingId > 0) {
+                    try (PreparedStatement link = conn.prepareStatement(
+                            "INSERT INTO recipe_ingredients (recipe_id, ingredient_id, quantity) VALUES (?, ?, '1 unit')")) {
+                        link.setInt(1, recipe.getId());
+                        link.setInt(2, ingId);
+                        link.executeUpdate();
+                    }
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 
     public static List<String> getIngredientsForRecipe(int recipeId) {
         List<String> ingredients = new ArrayList<>();

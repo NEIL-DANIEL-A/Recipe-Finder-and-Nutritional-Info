@@ -58,7 +58,7 @@ public class SearchPanel extends JPanel {
         });
 
         // Diet Combo
-        dietCombo = new JComboBox<>(new String[]{"All", "Vegetarian", "Vegan", "Non-Veg"});
+        dietCombo = new JComboBox<>(new String[]{"All", "Vegetarian", "Non-Vegetarian", "Vegan"});
         dietCombo.setPreferredSize(new Dimension(130, 45));
         dietCombo.setFont(mainFont);
         dietCombo.setBackground(Color.WHITE);

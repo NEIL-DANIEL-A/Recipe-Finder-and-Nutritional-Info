@@ -31,4 +31,37 @@ public class Recipe {
     public int getCarbs() { return carbs; }
     public int getFat() { return fat; }
     public Image getImage() { return image; }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDietType(String dietType) {
+        this.dietType = dietType;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setInstructions(String instructions) {
+        this.instructions = instructions;
+    }
+
+    public void setCalories(int calories) {
+        this.calories = calories;
+    }
+
+    public void setProtein(int protein) {
+        this.protein = protein;
+    }
+
+    public void setCarbs(int carbs) {
+        this.carbs = carbs;
+    }
+
+    public void setFat(int fat) {
+        this.fat = fat;
+    }
+
 }

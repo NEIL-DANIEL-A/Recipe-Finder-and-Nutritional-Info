@@ -40,7 +40,7 @@ public class AddRecipeFrame extends JFrame {
 
         gbc.gridy = row++;
         formPanel.add(makeLabel("🥗 Diet Type:"), gbc);
-        dietCombo = new JComboBox<>(new String[]{"Vegan", "Vegetarian", "Non-Veg"});
+        dietCombo = new JComboBox<>(new String[]{"Vegetarian", "Non-Vegetarian", "Vegan"});
         dietCombo.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 14));
         gbc.gridy = row++;
         formPanel.add(dietCombo, gbc);
