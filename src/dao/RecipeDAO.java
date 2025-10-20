@@ -17,6 +17,12 @@ public class RecipeDAO {
         dietType = dietType == null ? "All" : dietType.trim();
 
         try (Connection conn = DBConnection.getConnection()) {
+            String[] terms = query.split(",");
+            List<String> keywords = new ArrayList<>();
+            for (String t : terms) {
+                t = t.trim().toLowerCase();
+                if (!t.isEmpty()) keywords.add(t);
+            }
 
             StringBuilder sql = new StringBuilder("""
             SELECT DISTINCT r.id, r.name, r.diet_type, r.description,
@@ -25,10 +31,20 @@ public class RecipeDAO {
             FROM recipes r
             LEFT JOIN recipe_ingredients ri ON r.id = ri.recipe_id
             LEFT JOIN ingredients i ON ri.ingredient_id = i.id
-            WHERE (LOWER(r.name) LIKE ? OR LOWER(i.name) LIKE ?)
+            WHERE 1=1
         """);
 
-            // 🔹 Normalize diet filters
+            // ✅ If keywords exist — match ANY name or ingredient (more user-friendly)
+            if (!keywords.isEmpty()) {
+                sql.append(" AND (");
+                for (int i = 0; i < keywords.size(); i++) {
+                    if (i > 0) sql.append(" OR ");
+                    sql.append("(LOWER(r.name) LIKE ? OR LOWER(i.name) LIKE ?)");
+                }
+                sql.append(")");
+            }
+
+            // ✅ Diet filters
             if (!dietType.equalsIgnoreCase("All")) {
                 if (dietType.equalsIgnoreCase("Vegetarian")) {
                     sql.append(" AND (LOWER(r.diet_type) = 'vegetarian' OR LOWER(r.diet_type) = 'vegan')");
@@ -42,13 +58,18 @@ public class RecipeDAO {
             sql.append(" ORDER BY r.name ASC");
 
             PreparedStatement ps = conn.prepareStatement(sql.toString());
-            ps.setString(1, "%" + query + "%");
-            ps.setString(2, "%" + query + "%");
+
+            // 🧩 Bind search keywords
+            int idx = 1;
+            for (String kw : keywords) {
+                ps.setString(idx++, "%" + kw + "%"); // recipe name LIKE
+                ps.setString(idx++, "%" + kw + "%"); // ingredient LIKE
+            }
 
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                Image img = util.ImageUtil.readImageFromBlob(rs.getBinaryStream("image"));
+                Image img = ImageUtil.readImageFromBlob(rs.getBinaryStream("image"));
                 list.add(new Recipe(
                         rs.getInt("id"),
                         rs.getString("name"),
@@ -69,6 +90,7 @@ public class RecipeDAO {
 
         return list;
     }
+
 
 
 
