@@ -1,0 +1,3 @@
+jdbc:mysql://localhost:3306/recipe_db
+root
+Neil_daniel06
