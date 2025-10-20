@@ -28,3 +28,15 @@ GUI Framework: Swing
 Database: MySQL
 
 Driver: JDBC (MySQL Connector/J)
+
+
+## Screenshots ##
+
+
+## 💡 Future Enhancements ##
+
+User authentication
+
+Export recipes to PDF
+
+Online recipe sharing
