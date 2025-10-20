@@ -4,7 +4,7 @@ A modern Java Swing desktop application that helps users search, add, and manage
 Recipes can be filtered by ingredients or diet type (Vegetarian, Non-Vegetarian, Vegan) and stored with images and nutrition details using a MySQL database.
 
 
-🚀 Features
+## 🚀 Features ##
 
 🔍 Smart Search — Find recipes by ingredients or name
 
@@ -19,7 +19,7 @@ Recipes can be filtered by ingredients or diet type (Vegetarian, Non-Vegetarian,
 🗄️ MySQL Backend — All data stored securely and efficiently
 
 
-🧰 Tech Stack
+## 🧰 Tech Stack ##
 
 Language: Java
 
