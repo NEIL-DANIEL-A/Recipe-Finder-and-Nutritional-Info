@@ -102,24 +102,24 @@ public class ResultsPanel extends JPanel {
                 BorderFactory.createEmptyBorder(12, 18, 12, 18)
         ));
         card.setMaximumSize(new Dimension(1050, Integer.MAX_VALUE));
-        card.setPreferredSize(new Dimension(1050, 220));
+        card.setPreferredSize(new Dimension(1050, 260));
 
+        // --- Image ---
         JLabel imgLbl = new JLabel();
         imgLbl.setHorizontalAlignment(SwingConstants.CENTER);
         imgLbl.setVerticalAlignment(SwingConstants.CENTER);
         imgLbl.setPreferredSize(new Dimension(180, 130));
 
         Image img = recipe.getImage();
-        if (img != null) {
+        if (img != null)
             imgLbl.setIcon(new ImageIcon(ImageUtil.resize(img, 180, 130)));
-        } else {
+        else {
             imgLbl.setText("📷");
             imgLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 32));
         }
-
         card.add(imgLbl, BorderLayout.WEST);
 
-        // Text content
+        // --- Text Content ---
         JPanel textPanel = new JPanel();
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
         textPanel.setBackground(Color.WHITE);
@@ -127,39 +127,43 @@ public class ResultsPanel extends JPanel {
         JLabel nameLbl = new JLabel(recipe.getName() + " (" + recipe.getDietType() + ")");
         nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 17));
 
-        JTextArea descArea = createWrappedText("Description:", recipe.getDescription(), true);
+        JLabel descLbl = new JLabel("<html><b>Description:</b> " + recipe.getDescription() + "</html>");
+        descLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
+        // Ingredients
         List<String> ingredients = RecipeDAO.getIngredientsForRecipe(recipe.getId());
         String ingredientsText = ingredients.isEmpty() ? "None listed" : String.join(", ", ingredients);
-        JTextArea ingArea = createWrappedText("Ingredients:", ingredientsText, true);
+        JLabel ingLbl = new JLabel("<html><b>Ingredients:</b> " + ingredientsText + "</html>");
+        ingLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
-        JTextArea instrArea = createWrappedText("Instructions:", recipe.getInstructions(), true);
+        // Instructions
+        JLabel instrLbl = new JLabel("<html><b>Instructions:</b> " + recipe.getInstructions() + "</html>");
+        instrLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
         JLabel nutriLbl = new JLabel("<html><b>Nutrition Info:</b> Calories: " + recipe.getCalories() +
-                " kcal | Protein: " + recipe.getProtein() + "g | Carbs: " + recipe.getCarbs() +
-                "g | Fat: " + recipe.getFat() + "g</html>");
+                " kcal | Protein: " + recipe.getProtein() + "g | Carbs: " +
+                recipe.getCarbs() + "g | Fat: " + recipe.getFat() + "g</html>");
         nutriLbl.setFont(new Font("Segoe UI", Font.ITALIC, 12));
         nutriLbl.setForeground(new Color(90, 90, 90));
 
         textPanel.add(nameLbl);
         textPanel.add(Box.createVerticalStrut(6));
-        textPanel.add(descArea);
+        textPanel.add(descLbl);
         textPanel.add(Box.createVerticalStrut(5));
-        textPanel.add(ingArea);
+        textPanel.add(ingLbl);
         textPanel.add(Box.createVerticalStrut(5));
-        textPanel.add(instrArea);
+        textPanel.add(instrLbl);
         textPanel.add(Box.createVerticalStrut(7));
         textPanel.add(nutriLbl);
 
         card.add(textPanel, BorderLayout.CENTER);
 
-        // Buttons
+        // --- Buttons ---
         JButton editBtn = new JButton("✏️ Edit Recipe");
         editBtn.setBackground(new Color(200, 230, 255));
         editBtn.setFocusPainted(false);
         editBtn.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
         editBtn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        editBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         editBtn.addActionListener(e -> new EditRecipeFrame(recipe));
 
         JButton favBtn = new JButton("⭐ Add to Favorites");
@@ -167,7 +171,6 @@ public class ResultsPanel extends JPanel {
         favBtn.setFocusPainted(false);
         favBtn.setFont(new Font("Segoe UI Emoji", Font.BOLD, 14));
         favBtn.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
-        favBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         favBtn.addActionListener(e -> {
             FavoriteDAO.addFavorite(recipe.getId());
             JOptionPane.showMessageDialog(this,
@@ -184,4 +187,5 @@ public class ResultsPanel extends JPanel {
 
         return card;
     }
+
 }
