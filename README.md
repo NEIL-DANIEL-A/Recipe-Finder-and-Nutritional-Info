@@ -1,7 +1,8 @@
-🍲 Recipe Finder
+# 🍲 Recipe Finder #
 
 A modern Java Swing desktop application that helps users search, add, and manage recipes efficiently.
 Recipes can be filtered by ingredients or diet type (Vegetarian, Non-Vegetarian, Vegan) and stored with images and nutrition details using a MySQL database.
+
 
 🚀 Features
 
@@ -16,6 +17,7 @@ Recipes can be filtered by ingredients or diet type (Vegetarian, Non-Vegetarian,
 🖼️ Image Support — Displays recipe images directly from database
 
 🗄️ MySQL Backend — All data stored securely and efficiently
+
 
 🧰 Tech Stack
 
