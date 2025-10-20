@@ -3,113 +3,106 @@ package ui;
 import dao.FavoriteDAO;
 import model.Recipe;
 import util.ImageUtil;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
-
 public class FavoritesFrame extends JFrame {
-
-    private JButton createStyledButton(String text, Color bgColor) {
-        JButton button = new JButton(text);
-        button.setBackground(bgColor);
-        button.setForeground(Color.BLACK);
-        button.setFocusPainted(false);
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        button.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
-        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        button.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseEntered(java.awt.event.MouseEvent e) {
-                button.setBackground(bgColor.darker());
-            }
-
-            @Override
-            public void mouseExited(java.awt.event.MouseEvent e) {
-                button.setBackground(bgColor);
-            }
-        });
-
-        return button;
-    }
-
 
     public FavoritesFrame() {
         setTitle("⭐ My Favorite Recipes");
-        setSize(800, 600);
+        setSize(850, 650);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
-        JPanel content = new JPanel();
-        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-        content.setBackground(new Color(245, 247, 250));
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(new Color(245, 247, 250));
 
         List<Recipe> favorites = FavoriteDAO.getFavorites();
 
         if (favorites.isEmpty()) {
-            JLabel lbl = new JLabel("No favorites yet!", SwingConstants.CENTER);
-            lbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
-            lbl.setForeground(Color.GRAY);
-            add(lbl, BorderLayout.CENTER);
+            JLabel noFavs = new JLabel("You haven't added any favorites yet!", SwingConstants.CENTER);
+            noFavs.setFont(new Font("Segoe UI", Font.BOLD, 18));
+            noFavs.setForeground(Color.GRAY);
+            add(noFavs, BorderLayout.CENTER);
         } else {
             for (Recipe r : favorites) {
                 JPanel card = new JPanel(new BorderLayout(15, 10));
                 card.setBackground(Color.WHITE);
                 card.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
-                        BorderFactory.createEmptyBorder(12, 18, 12, 18)
+                        BorderFactory.createEmptyBorder(15, 20, 15, 20)
                 ));
-                card.setMaximumSize(new Dimension(1050, Integer.MAX_VALUE));
+                card.setMaximumSize(new Dimension(800, 180));
 
+                // 🔹 Recipe Image
                 JLabel imgLbl = new JLabel();
-                Image img = ImageUtil.resize(r.getImage(), 180, 130);
+                Image img = ImageUtil.resize(r.getImage(), 140, 120);
                 if (img != null)
                     imgLbl.setIcon(new ImageIcon(img));
                 else {
                     imgLbl.setText("📷");
-                    imgLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 32));
+                    imgLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 40));
+                    imgLbl.setHorizontalAlignment(SwingConstants.CENTER);
                 }
+                imgLbl.setPreferredSize(new Dimension(140, 120));
                 card.add(imgLbl, BorderLayout.WEST);
 
-                JPanel info = new JPanel();
-                info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
-                info.setBackground(Color.WHITE);
+                // 🔹 Text info panel
+                JPanel infoPanel = new JPanel();
+                infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+                infoPanel.setBackground(Color.WHITE);
 
-                JLabel name = new JLabel(r.getName() + " (" + r.getDietType() + ")");
-                name.setFont(new Font("Segoe UI", Font.BOLD, 17));
+                JLabel nameLbl = new JLabel(r.getName() + " (" + r.getDietType() + ")");
+                nameLbl.setFont(new Font("Segoe UI", Font.BOLD, 16));
 
-                JLabel desc = new JLabel("<html><b>Description:</b> " + r.getDescription() + "</html>");
-                desc.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                JLabel descLbl = new JLabel("<html><b>Description:</b> " +
+                        (r.getDescription() == null ? "No description." : r.getDescription()) + "</html>");
+                descLbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
 
-                JLabel nutri = new JLabel("<html><b>Nutrition:</b> Calories: " + r.getCalories()
-                        + " kcal | Protein: " + r.getProtein() + "g | Carbs: " + r.getCarbs()
-                        + "g | Fat: " + r.getFat() + "g</html>");
-                nutri.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+                JLabel nutriLbl = new JLabel(String.format(
+                        "<html><b>Nutrition:</b> Calories: %d kcal | Protein: %dg | Carbs: %dg | Fat: %dg</html>",
+                        r.getCalories(), r.getProtein(), r.getCarbs(), r.getFat()));
+                nutriLbl.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+                nutriLbl.setForeground(new Color(90, 90, 90));
 
+                infoPanel.add(nameLbl);
+                infoPanel.add(Box.createVerticalStrut(5));
+                infoPanel.add(descLbl);
+                infoPanel.add(Box.createVerticalStrut(5));
+                infoPanel.add(nutriLbl);
+
+                // 🔹 Remove button
                 JButton removeBtn = new JButton("❌ Remove from Favorites");
-                removeBtn.setBackground(new Color(255, 182, 193));
+                removeBtn.setBackground(new Color(255, 204, 204));
                 removeBtn.setFocusPainted(false);
+                removeBtn.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 13));
+                removeBtn.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
+                removeBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
                 removeBtn.addActionListener(e -> {
                     FavoriteDAO.removeFavorite(r.getId());
-                    JOptionPane.showMessageDialog(this, r.getName() + " removed!");
+                    JOptionPane.showMessageDialog(this,
+                            r.getName() + " removed from favorites!");
                     dispose();
                     new FavoritesFrame().setVisible(true);
                 });
 
-                info.add(name);
-                info.add(Box.createVerticalStrut(6));
-                info.add(desc);
-                info.add(Box.createVerticalStrut(4));
-                info.add(nutri);
-                info.add(Box.createVerticalStrut(10));
-                info.add(removeBtn);
+                infoPanel.add(Box.createVerticalStrut(10));
+                infoPanel.add(removeBtn);
 
-                card.add(info, BorderLayout.CENTER);
-                content.add(card);
-                content.add(Box.createVerticalStrut(10));
+                card.add(infoPanel, BorderLayout.CENTER);
+
+                contentPanel.add(card);
+                contentPanel.add(Box.createVerticalStrut(15));
             }
 
-            add(new JScrollPane(content), BorderLayout.CENTER);
+            JScrollPane scrollPane = new JScrollPane(contentPanel);
+            scrollPane.setBorder(BorderFactory.createEmptyBorder());
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            add(scrollPane, BorderLayout.CENTER);
         }
     }
 }
